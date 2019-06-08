@@ -1,25 +1,57 @@
 ---
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
+title: "Project1"
+output: html_document
 ---
+# 1. Loading and preprocessing the data
+```{r echo=TRUE}
+library(ggplot2)
+library(plyr)
+library(lattice)
+data<- read.csv("activity.csv")
+data$day <- weekdays(as.Date(data$date))
+data$DateTime<- as.POSIXct(data$date, format="%Y-%m-%d")
+dataclean <- data[!is.na(data$steps),]
+```
+
+# 2. What is mean total number of steps taken per day?
+```{r echo=TRUE}
+sumsteps <- aggregate(dataclean$steps ~ dataclean$date, FUN=sum )
+colnames(sumsteps)<- c("Date", "Steps")
+hist(sumsteps$Steps, xlab="Steps", main = "Total Steps recorded per Day")
+as.integer(mean(sumsteps$Steps))
+as.integer(median(sumsteps$Steps))
+```
+
+# 3. What is the average daily activity pattern?
+```{r echo=TRUE}
+intervalsteps <- ddply(dataclean, .(interval), summarize, Avg = mean(steps))
+g <- ggplot(intervalsteps, aes(x=interval, y=Avg), xlab = "Interval", ylab="Average Number of Steps")
+g + geom_line()+xlab("Interval")+ylab("Average Number of Steps")+ggtitle("Average Number of S")
+stepsmax <- max(intervalsteps$Avg)
+intervalsteps[intervalsteps$Avg==stepsmax,1]
+```
+
+# 4. Imputing missing values
+```{r echo=TRUE}
+totalna <- sum(is.na(data))
+means <- aggregate(steps~day,data,FUN=mean, na.rm=T)
+data1 <- data[!complete.cases(data),-1]
+data <- data[complete.cases(data),]
+data1 <- merge(data1,means)
+data <- rbind(data,data1)
+histdata <- aggregate(steps~date, data, FUN=sum)
+hist(histdata$steps, breaks=5, xlab="Steps", main = "Total Steps per Day (NAs replaced with mean)", col="Black")
+```
+
+# 5. Are there differences in activity patterns between weekdays and weekends?
+```{r echo=TRUE}
 
 
-## Loading and preprocessing the data
+data$WeekEnd <- ifelse(data$day %in% c("Saturday", "Sunday"), "Weekend", "Weekday")
+plotdata <- aggregate(steps~WeekEnd+interval,data,mean)
 
+xyplot(steps~interval|WeekEnd, data=plotdata, type="l",  layout = c(1,2),
+       main="average number of steps taken by interval, averaged across all weekday days or weekend days", 
+       ylab="Average Steps", xlab="Interval")
 
-
-## What is mean total number of steps taken per day?
-
-
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+```
